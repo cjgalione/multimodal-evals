@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next
+/out
+
+# production
+/dist
+
+# misc
+.DS_Store
+*.pem
+*.log
+
+# dotenv
+.env
+.env*.local
+
+# coverage
+/coverage
+
+# tests
+/test-results
+
