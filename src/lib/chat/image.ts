@@ -6,6 +6,7 @@ import { ImageRef } from "@/lib/types";
 
 export interface NormalizedImage {
   dataUrl: string;
+  base64: string;
   mimeType: string;
   filename: string;
   byteLength: number;
@@ -45,13 +46,14 @@ export function normalizeImageInput(image?: ImageRef): NormalizedImage | undefin
   const filename =
     image.filename ??
     `upload.${image.mimeType.replace("image/", "").replace("jpeg", "jpg")}`;
-  const dataUrl = `data:${image.mimeType};base64,${image.base64.replace(/\s+/g, "")}`;
+  const normalizedBase64 = image.base64.replace(/\s+/g, "");
+  const dataUrl = `data:${image.mimeType};base64,${normalizedBase64}`;
 
   return {
     dataUrl,
+    base64: normalizedBase64,
     mimeType: image.mimeType,
     filename,
     byteLength,
   };
 }
-

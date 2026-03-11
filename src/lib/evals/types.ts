@@ -15,6 +15,7 @@ export interface DemoEvalMetadata {
 export interface DemoEvalInput {
   messages: ChatTurn[];
   image?: ImageRef;
+  images?: ImageRef[];
 }
 
 export interface DemoEvalCase {
@@ -22,4 +23,3 @@ export interface DemoEvalCase {
   expected: DemoEvalExpected;
   metadata: DemoEvalMetadata;
 }
-

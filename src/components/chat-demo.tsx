@@ -8,7 +8,7 @@ interface UiMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  imagePreview?: string;
+  imagePreviews?: string[];
 }
 
 interface UploadedImage {
@@ -54,27 +54,29 @@ function buildSessionId(): string {
 export function ChatDemo() {
   const [messages, setMessages] = useState<UiMessage[]>([WELCOME_MESSAGE]);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [sessionId, setSessionId] = useState(buildSessionId);
+  const [traceParent, setTraceParent] = useState<string | undefined>();
   const [draft, setDraft] = useState("");
-  const [pendingImage, setPendingImage] = useState<UploadedImage | undefined>();
-  const [activeImage, setActiveImage] = useState<UploadedImage | undefined>();
+  const [pendingImages, setPendingImages] = useState<UploadedImage[]>([]);
+  const [activeImages, setActiveImages] = useState<UploadedImage[]>([]);
   const [loading, setLoading] = useState(false);
   const [trace, setTrace] = useState<TraceInfo | undefined>();
   const [error, setError] = useState<string | undefined>();
 
   const canSend = useMemo(
-    () => !loading && (draft.trim().length > 0 || Boolean(pendingImage || activeImage)),
-    [draft, loading, pendingImage, activeImage],
+    () => !loading && (draft.trim().length > 0 || pendingImages.length > 0 || activeImages.length > 0),
+    [draft, loading, pendingImages, activeImages],
   );
 
   async function onImagePicked(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) {
       return;
     }
 
     try {
-      const image = await toUploadedImage(file);
-      setPendingImage(image);
+      const images = await Promise.all(files.map((file) => toUploadedImage(file)));
+      setPendingImages((prev) => [...prev, ...images]);
       setError(undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load image");
@@ -90,35 +92,54 @@ export function ChatDemo() {
     }
 
     const userText = draft.trim() || "Please analyze this image.";
-    const imageForRequest = pendingImage ?? activeImage;
+    const hasPendingImages = pendingImages.length > 0;
+    const imagesForTurn = hasPendingImages ? pendingImages : activeImages;
     const userMessage: UiMessage = {
       id: id(),
       role: "user",
       content: userText,
-      imagePreview: pendingImage?.previewDataUrl,
+      imagePreviews: hasPendingImages
+        ? pendingImages.map((image) => image.previewDataUrl)
+        : undefined,
     };
 
-    const nextTurns: ChatTurn[] = [...turns, { role: "user", content: userText }];
+    const turnIndex = turns.filter((turn) => turn.role === "user").length + 1;
+    const nextTurns: ChatTurn[] = [
+      ...turns,
+      {
+        role: "user",
+        content: userText,
+      },
+    ];
     setMessages((prev) => [...prev, userMessage]);
     setTurns(nextTurns);
     setLoading(true);
     setError(undefined);
     setDraft("");
-    if (pendingImage) {
-      setActiveImage(pendingImage);
-      setPendingImage(undefined);
+    if (hasPendingImages) {
+      setActiveImages(pendingImages);
+      setPendingImages([]);
     }
 
     const body: ChatRequestBody = {
       messages: nextTurns,
-      image: imageForRequest
+      images: imagesForTurn.length > 0
+        ? imagesForTurn.map((image) => ({
+            mimeType: image.mimeType,
+            base64: image.base64,
+            filename: image.filename,
+          }))
+        : undefined,
+      image: imagesForTurn[0]
         ? {
-            mimeType: imageForRequest.mimeType,
-            base64: imageForRequest.base64,
-            filename: imageForRequest.filename,
+            mimeType: imagesForTurn[0].mimeType,
+            base64: imagesForTurn[0].base64,
+            filename: imagesForTurn[0].filename,
           }
         : undefined,
-      sessionId: buildSessionId(),
+      sessionId,
+      traceParent,
+      turnIndex,
     };
 
     try {
@@ -141,6 +162,9 @@ export function ChatDemo() {
       setMessages((prev) => [...prev, assistantMessage]);
       setTurns((prev) => [...prev, { role: "assistant", content: payload.answer }]);
       setTrace(payload.trace);
+      if (payload.trace?.parent) {
+        setTraceParent(payload.trace.parent);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown request error");
       setMessages((prev) => [
@@ -154,6 +178,18 @@ export function ChatDemo() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function resetConversation() {
+    setMessages([WELCOME_MESSAGE]);
+    setTurns([]);
+    setTrace(undefined);
+    setTraceParent(undefined);
+    setDraft("");
+    setPendingImages([]);
+    setActiveImages([]);
+    setError(undefined);
+    setSessionId(buildSessionId());
   }
 
   return (
@@ -181,19 +217,26 @@ export function ChatDemo() {
       <section className="chat-card">
         <div className="chat-feed">
           {messages.map((message) => (
-            <article key={message.id} className={`message ${message.role}`}>
-              {message.content}
-              {message.imagePreview ? (
-                <Image
-                  src={message.imagePreview}
-                  alt="Uploaded by user"
-                  width={280}
-                  height={280}
-                  unoptimized
-                  className="preview-image"
-                />
+            <div key={message.id} className={`chat-item ${message.role}`}>
+              {message.role === "user" && message.imagePreviews?.length ? (
+                <div className="message-image-stack">
+                  {message.imagePreviews.map((preview, index) => (
+                    <Image
+                      key={`${message.id}-image-${index}`}
+                      src={preview}
+                      alt="Uploaded by user"
+                      width={220}
+                      height={220}
+                      unoptimized
+                      className="message-image"
+                    />
+                  ))}
+                </div>
               ) : null}
-            </article>
+              <article className={`message ${message.role}`}>
+                {message.content}
+              </article>
+            </div>
           ))}
         </div>
 
@@ -206,29 +249,65 @@ export function ChatDemo() {
               id="image-upload"
               type="file"
               accept="image/*"
+              multiple
               onChange={onImagePicked}
               style={{ display: "none" }}
             />
-            {pendingImage ? (
+            {pendingImages.length > 0 ? (
               <span className="badge">
-                Pending: {pendingImage.filename} ({Math.round(pendingImage.byteLength / 1024)} KB)
+                Pending: {pendingImages.length} image{pendingImages.length === 1 ? "" : "s"}
               </span>
             ) : null}
-            {activeImage ? (
+            {activeImages.length > 0 ? (
               <span className="badge">
-                Active context: {activeImage.filename}
+                Active context: {activeImages.length} image{activeImages.length === 1 ? "" : "s"}
               </span>
             ) : null}
-            {activeImage ? (
+            {activeImages.length > 0 ? (
               <button
                 type="button"
                 className="btn"
-                onClick={() => setActiveImage(undefined)}
+                onClick={() => setActiveImages([])}
               >
                 Clear context image
               </button>
             ) : null}
+            {pendingImages.length > 0 ? (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setPendingImages([])}
+              >
+                Clear pending
+              </button>
+            ) : null}
+            <button type="button" className="btn" onClick={resetConversation}>
+              New conversation
+            </button>
           </div>
+
+          {(pendingImages.length > 0 || activeImages.length > 0) ? (
+            <div className="context-image-panel">
+              <div className="context-image-label">
+                {pendingImages.length > 0
+                  ? "Pending image context for next turn"
+                  : "Current context image"}
+              </div>
+              <div className="context-image-grid">
+                {(pendingImages.length > 0 ? pendingImages : activeImages).map((image, index) => (
+                  <Image
+                    key={`${image.filename}-${index}`}
+                    src={image.previewDataUrl}
+                    alt={image.filename}
+                    width={220}
+                    height={220}
+                    unoptimized
+                    className="context-image-preview"
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <textarea
             value={draft}

@@ -1,6 +1,17 @@
 import OpenAI from "openai";
 import { ChatTurn } from "@/lib/types";
 
+function toImageParts(
+  images: Array<{ mimeType: string; base64: string }>,
+): OpenAI.Chat.Completions.ChatCompletionContentPartImage[] {
+  return images.map((image) => ({
+    type: "image_url",
+    image_url: {
+      url: `data:${image.mimeType};base64,${image.base64}`,
+    },
+  }));
+}
+
 function toOpenAIMessage(
   message: ChatTurn,
 ): OpenAI.Chat.Completions.ChatCompletionMessageParam {
@@ -10,12 +21,26 @@ function toOpenAIMessage(
   if (message.role === "assistant") {
     return { role: "assistant", content: message.content };
   }
+  const messageImages = message.images?.length
+    ? message.images
+    : message.image
+      ? [message.image]
+      : [];
+  if (messageImages.length > 0) {
+    return {
+      role: "user",
+      content: [
+        { type: "text", text: message.content },
+        ...toImageParts(messageImages),
+      ],
+    };
+  }
   return { role: "user", content: message.content };
 }
 
 export function buildOpenAIMessages(
   turns: ChatTurn[],
-  imageDataUrl?: string,
+  imageDataUrls: string[] = [],
 ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
   const hasSystem = turns.some((turn) => turn.role === "system");
   const baseMessages = hasSystem
@@ -29,7 +54,7 @@ export function buildOpenAIMessages(
         ...turns.map(toOpenAIMessage),
       ];
 
-  if (!imageDataUrl) {
+  if (imageDataUrls.length === 0) {
     return baseMessages;
   }
 
@@ -38,10 +63,10 @@ export function buildOpenAIMessages(
     .filter((index) => index >= 0);
   const targetIndex = userIndices[userIndices.length - 1];
 
-  const imagePart: OpenAI.Chat.Completions.ChatCompletionContentPartImage = {
+  const imageParts: OpenAI.Chat.Completions.ChatCompletionContentPartImage[] = imageDataUrls.map((url) => ({
     type: "image_url",
-    image_url: { url: imageDataUrl },
-  };
+    image_url: { url },
+  }));
 
   if (targetIndex === undefined) {
     return [
@@ -50,7 +75,7 @@ export function buildOpenAIMessages(
         role: "user",
         content: [
           { type: "text", text: "Please analyze this image." },
-          imagePart,
+          ...imageParts,
         ],
       },
     ];
@@ -62,9 +87,12 @@ export function buildOpenAIMessages(
     }
 
     if (Array.isArray(message.content)) {
+      if (message.content.some((part) => part.type === "image_url")) {
+        return message;
+      }
       return {
         ...message,
-        content: [...message.content, imagePart],
+        content: [...message.content, ...imageParts],
       };
     }
 
@@ -72,9 +100,8 @@ export function buildOpenAIMessages(
       ...message,
       content: [
         { type: "text", text: message.content ?? "Please analyze this image." },
-        imagePart,
+        ...imageParts,
       ],
     };
   });
 }
-

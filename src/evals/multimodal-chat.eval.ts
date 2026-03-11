@@ -15,6 +15,7 @@ Eval(DEMO_PROJECT_NAME, {
     const result = await multimodalAnswer({
       messages: input.messages,
       image: input.image,
+      images: input.images,
       sessionId: `eval-${Date.now()}`,
     });
     return result.answer;
@@ -26,4 +27,3 @@ Eval(DEMO_PROJECT_NAME, {
     case_count: createMultimodalEvalDataset().length,
   },
 });
-

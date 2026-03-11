@@ -4,7 +4,7 @@ export const DEMO_PROJECT_NAME =
 export const OPENAI_MODEL =
   process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
-export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
 export const ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/png",
@@ -13,4 +13,3 @@ export const ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
-
