@@ -2,22 +2,13 @@
 
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import Image from "next/image";
-import { ChatRequestBody, ChatResponseBody, ChatTurn, ImageRef, TraceInfo } from "@/lib/types";
-
-type EvalSaveStatus = "idle" | "saving" | "saved" | "error";
+import { ChatRequestBody, ChatResponseBody, ChatTurn, TraceInfo } from "@/lib/types";
 
 interface UiMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   imagePreviews?: string[];
-  // Only set on assistant messages — the full exchange snapshot for eval capture
-  evalSnapshot?: {
-    turns: ChatTurn[];
-    answer: string;
-    images?: ImageRef[];
-  };
-  evalSaveStatus?: EvalSaveStatus;
 }
 
 interface UploadedImage {
@@ -163,23 +154,10 @@ export function ChatDemo() {
         throw new Error(payload.error ?? "Chat API request failed");
       }
 
-      const snapshotImages = imagesForTurn.length > 0
-        ? imagesForTurn.map((img) => ({
-            mimeType: img.mimeType,
-            base64: img.base64,
-            filename: img.filename,
-          }))
-        : undefined;
       const assistantMessage: UiMessage = {
         id: id(),
         role: "assistant",
         content: payload.answer,
-        evalSnapshot: {
-          turns: [...nextTurns, { role: "assistant", content: payload.answer }],
-          answer: payload.answer,
-          images: snapshotImages,
-        },
-        evalSaveStatus: "idle",
       };
       setMessages((prev) => [...prev, assistantMessage]);
       setTurns((prev) => [...prev, { role: "assistant", content: payload.answer }]);
@@ -199,48 +177,6 @@ export function ChatDemo() {
       ]);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function saveAsEvalCase(messageId: string) {
-    const msg = messages.find((m) => m.id === messageId);
-    if (!msg?.evalSnapshot) {
-      return;
-    }
-
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === messageId ? { ...m, evalSaveStatus: "saving" } : m,
-      ),
-    );
-
-    try {
-      const response = await fetch("/api/generate-eval-case", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          turns: msg.evalSnapshot.turns,
-          answer: msg.evalSnapshot.answer,
-          images: msg.evalSnapshot.images,
-          image: msg.evalSnapshot.images?.[0],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save eval case");
-      }
-
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId ? { ...m, evalSaveStatus: "saved" } : m,
-        ),
-      );
-    } catch {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId ? { ...m, evalSaveStatus: "error" } : m,
-        ),
-      );
     }
   }
 
@@ -300,26 +236,6 @@ export function ChatDemo() {
               <article className={`message ${message.role}`}>
                 {message.content}
               </article>
-              {message.role === "assistant" && message.evalSnapshot ? (
-                <div className="eval-capture-row">
-                  {message.evalSaveStatus === "saved" ? (
-                    <span className="badge eval-saved">Saved to evals</span>
-                  ) : message.evalSaveStatus === "error" ? (
-                    <span className="badge eval-error">Save failed</span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn eval-capture-btn"
-                      disabled={message.evalSaveStatus === "saving"}
-                      onClick={() => saveAsEvalCase(message.id)}
-                    >
-                      {message.evalSaveStatus === "saving"
-                        ? "Saving..."
-                        : "Save as eval case"}
-                    </button>
-                  )}
-                </div>
-              ) : null}
             </div>
           ))}
         </div>
