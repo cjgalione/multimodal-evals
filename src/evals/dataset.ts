@@ -3,6 +3,23 @@ import { join } from "node:path";
 import { DemoEvalCase, DemoEvalExpected, DemoEvalMetadata } from "@/lib/evals/types";
 import { ChatTurn, ImageRef } from "@/lib/types";
 
+const GENERATED_CASES_PATH = join(
+  process.cwd(),
+  "src",
+  "lib",
+  "evals",
+  "generated-cases.json",
+);
+
+function loadGeneratedCases(): DemoEvalCase[] {
+  try {
+    const raw = readFileSync(GENERATED_CASES_PATH, "utf8");
+    return JSON.parse(raw) as DemoEvalCase[];
+  } catch {
+    return [];
+  }
+}
+
 const IMAGE_DIR = join(process.cwd(), "public", "eval-images");
 
 const imageCache = new Map<string, string>();
@@ -50,7 +67,7 @@ function caseRow(
 }
 
 export function createMultimodalEvalDataset(): DemoEvalCase[] {
-  return [
+  const hardcoded: DemoEvalCase[] = [
     caseRow(
       "factual-001",
       "factual",
@@ -177,5 +194,6 @@ export function createMultimodalEvalDataset(): DemoEvalCase[] {
       true,
     ),
   ];
+  return [...hardcoded, ...loadGeneratedCases()];
 }
 
