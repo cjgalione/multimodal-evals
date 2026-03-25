@@ -4,6 +4,7 @@ import { DEMO_PROJECT_NAME } from "@/lib/config";
 
 let loggerReady = false;
 let wrappedOpenAI: OpenAI | null = null;
+let wrappedGatewayOpenAI: OpenAI | null = null;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -35,3 +36,16 @@ export function getOpenAIClient(): OpenAI {
   return wrappedOpenAI;
 }
 
+export function getGatewayClient(): OpenAI {
+  ensureLogger();
+  if (wrappedGatewayOpenAI) {
+    return wrappedGatewayOpenAI;
+  }
+
+  const client = new OpenAI({
+    baseURL: "https://gateway.braintrust.dev/v1/proxy",
+    apiKey: requireEnv("BRAINTRUST_API_KEY"),
+  });
+  wrappedGatewayOpenAI = wrapOpenAI(client);
+  return wrappedGatewayOpenAI;
+}
