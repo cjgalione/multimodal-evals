@@ -1,4 +1,4 @@
-import { EvalScorerArgs } from "braintrust";
+import { EvalScorerArgs, traced } from "braintrust";
 import { DESIGN_JUDGE_MODEL } from "@/lib/config";
 import {
   DesignEvalExpected,
@@ -130,14 +130,30 @@ export function createDesignRubricScorer() {
   return async function designRubricScorer(
     args: EvalScorerArgs<DesignEvalInput, DesignAgentOutput, DesignEvalExpected>,
   ) {
-    const stepOutput = extractStepOutput(args.output, args.input.stepName);
-    const imageRef = await loadDesignImageByFilename(args.input.imageFilename);
-    const score = await scoreDesignStepWithJudge({
-      imageRef,
-      stepName: args.input.stepName,
-      stepOutput,
-      expected: args.expected,
+    return traced(async (span) => {
+      const stepOutput = extractStepOutput(args.output, args.input.stepName);
+      const imageRef = await loadDesignImageByFilename(args.input.imageFilename);
+
+      span.log({
+        input: {
+          imageFilename: args.input.imageFilename,
+          stepName: args.input.stepName,
+          outputPreview: stepOutput.slice(0, 220),
+        },
+      });
+
+      const score = await scoreDesignStepWithJudge({
+        imageRef,
+        stepName: args.input.stepName,
+        stepOutput,
+        expected: args.expected,
+      });
+
+      span.log({ output: score });
+      return toRubricEntries(score);
+    }, {
+      name: "design-rubric-scorer",
+      type: "scorer",
     });
-    return toRubricEntries(score);
   };
 }
