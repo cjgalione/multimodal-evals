@@ -12,7 +12,10 @@
     "test:watch": "vitest",
     "eval": "bt eval --runner tsx src/evals/multimodal-chat.eval.ts",
     "eval:jsonl": "bt eval --runner tsx --jsonl src/evals/multimodal-chat.eval.ts",
-    "images:generate": "node scripts/generate_eval_images.mjs"
+    "images:generate": "node scripts/generate_eval_images.mjs",
+    "images:generate:design": "python3 scripts/generate_design_images.py",
+    "eval:design": "bt eval --runner tsx src/evals/design-agent.eval.ts",
+    "eval:design:jsonl": "bt eval --runner tsx --jsonl src/evals/design-agent.eval.ts"
   },
   "dependencies": {
     "autoevals": "^0.0.132",

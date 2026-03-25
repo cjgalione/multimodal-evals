@@ -13,3 +13,14 @@ export const ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
+
+export const DESIGN_MODELS = [
+  "gpt-4o",
+  "gpt-4o-mini",
+  "claude-sonnet-4-5-20251022",
+] as const;
+
+export const DESIGN_EVAL_PROJECT =
+  process.env.BRAINTRUST_DESIGN_PROJECT ?? "Design Agent - Visual Content Eval";
+
+export const BRAINTRUST_GATEWAY_URL = "https://gateway.braintrust.dev/v1/proxy";
