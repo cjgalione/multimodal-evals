@@ -12,6 +12,7 @@ import {
 } from "@/lib/types";
 import { normalizeImageInput } from "@/lib/chat/image";
 import { getGatewayClient } from "@/lib/server/braintrust-client";
+import { loadDesignImageByFilename } from "@/lib/server/design-image-loader";
 
 const RUBRIC_KEYS: Array<keyof DesignRubricScore> = [
   "visual_specificity",
@@ -130,8 +131,9 @@ export function createDesignRubricScorer() {
     args: EvalScorerArgs<DesignEvalInput, DesignAgentOutput, DesignEvalExpected>,
   ) {
     const stepOutput = extractStepOutput(args.output, args.input.stepName);
+    const imageRef = await loadDesignImageByFilename(args.input.imageFilename);
     const score = await scoreDesignStepWithJudge({
-      imageRef: args.input.imageRef,
+      imageRef,
       stepName: args.input.stepName,
       stepOutput,
       expected: args.expected,

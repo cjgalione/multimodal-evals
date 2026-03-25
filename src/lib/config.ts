@@ -14,7 +14,7 @@ export const DESIGN_JUDGE_MODEL = "gpt-4o-mini";
 export const DESIGN_MODELS = [
   "gpt-4o",
   "gpt-4o-mini",
-  "claude-sonnet-4-5-20251022",
+  "claude-sonnet-4-5",
 ] as const satisfies readonly DesignModel[];
 
 export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;

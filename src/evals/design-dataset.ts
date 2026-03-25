@@ -1,34 +1,10 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   DesignEvalCase,
   DesignEvalExpected,
   DesignEvalInput,
   DesignEvalMetadata,
 } from "@/lib/evals/design-types";
-import { DesignStepKey, ImageRef } from "@/lib/types";
-
-const IMAGE_DIR = join(process.cwd(), "public", "eval-images", "design");
-const imageCache = new Map<string, string>();
-
-function loadImageBase64(fileName: string): string {
-  if (imageCache.has(fileName)) {
-    return imageCache.get(fileName)!;
-  }
-
-  const buffer = readFileSync(join(IMAGE_DIR, fileName));
-  const base64 = buffer.toString("base64");
-  imageCache.set(fileName, base64);
-  return base64;
-}
-
-function image(fileName: string): ImageRef {
-  return {
-    mimeType: "image/png",
-    filename: fileName,
-    base64: loadImageBase64(fileName),
-  };
-}
+import { DesignStepKey } from "@/lib/types";
 
 function caseRow(
   case_id: string,
@@ -39,7 +15,6 @@ function caseRow(
 ): DesignEvalCase {
   const input: DesignEvalInput = {
     imageFilename,
-    imageRef: image(imageFilename),
     stepName,
   };
 

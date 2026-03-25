@@ -1,20 +1,12 @@
-import { describe, expect, test, vi } from "vitest";
-
-const fakeBuffer = Buffer.from([1, 2, 3, 4, 5]);
-
-vi.mock("node:fs", () => ({
-  readFileSync: vi.fn(() => fakeBuffer),
-}));
+import { describe, expect, test } from "vitest";
 
 describe("createDesignEvalDataset", () => {
-  test("loads 10 design cases with embedded image refs", async () => {
+  test("loads 10 design cases with filename-only inputs", async () => {
     const { createDesignEvalDataset } = await import("@/evals/design-dataset");
     const dataset = createDesignEvalDataset();
 
     expect(dataset).toHaveLength(10);
     for (const row of dataset) {
-      expect(row.input.imageRef.mimeType).toBe("image/png");
-      expect(row.input.imageRef.base64).toBe(fakeBuffer.toString("base64"));
       expect(row.input.imageFilename.endsWith(".png")).toBe(true);
     }
   });

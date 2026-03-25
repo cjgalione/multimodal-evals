@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { traced } from "braintrust";
+import { Attachment, traced } from "braintrust";
 import { normalizeImageInput } from "@/lib/chat/image";
 import {
   DesignAgentOutput,
@@ -21,6 +21,23 @@ const COPY_SUGGEST_PROMPT =
 interface StepResult {
   text: string;
   trace: TraceInfo;
+}
+
+function asImageAttachment(image: {
+  base64: string;
+  filename: string;
+  mimeType: string;
+}) {
+  const bytes = Uint8Array.from(Buffer.from(image.base64, "base64"));
+  const arrayBuffer = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  );
+  return new Attachment({
+    data: arrayBuffer,
+    filename: image.filename,
+    contentType: image.mimeType,
+  });
 }
 
 function cleanAssistantText(value: string | null | undefined): string {
@@ -117,11 +134,13 @@ export async function runDesignAgentPipeline(
   }
 
   return traced(async (rootSpan) => {
+    const imageAttachment = asImageAttachment(normalized);
     rootSpan.log({
       input: {
         model,
         imageFilename: normalized.filename,
         imageBytes: normalized.byteLength,
+        image: imageAttachment,
       },
     });
 

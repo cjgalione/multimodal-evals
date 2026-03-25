@@ -1,16 +1,16 @@
-import { readFile } from "node:fs/promises";
-import { basename, join } from "node:path";
 import { DESIGN_MODELS } from "@/lib/config";
 import { scoreDesignStepWithJudge } from "@/lib/evals/design-scorers";
 import { runDesignAgentPipeline } from "@/lib/server/design-agent";
+import {
+  loadDesignImageByFilename,
+  validateDesignImageFilename,
+} from "@/lib/server/design-image-loader";
 import {
   DesignAgentRequestBody,
   DesignAgentResponseBody,
   DesignModel,
   ImageRef,
 } from "@/lib/types";
-
-const DESIGN_IMAGE_DIR = join(process.cwd(), "public", "eval-images", "design");
 
 interface DesignAgentHandlerDeps {
   runPipelineFn?: typeof runDesignAgentPipeline;
@@ -24,20 +24,6 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isDesignModel(value: string): value is DesignModel {
   return DESIGN_MODELS.includes(value as DesignModel);
-}
-
-function assertValidFilename(filename: string): string {
-  const trimmed = filename.trim();
-  if (!isNonEmptyString(trimmed)) {
-    throw new Error("imageFilename must be a non-empty string");
-  }
-  if (basename(trimmed) !== trimmed) {
-    throw new Error("imageFilename must not include path separators");
-  }
-  if (!/^[A-Za-z0-9._-]+$/.test(trimmed) || !trimmed.endsWith(".png")) {
-    throw new Error("imageFilename must be a .png filename");
-  }
-  return trimmed;
 }
 
 function validateBody(input: unknown): DesignAgentRequestBody {
@@ -60,7 +46,7 @@ function validateBody(input: unknown): DesignAgentRequestBody {
   }
 
   if (hasFilename) {
-    assertValidFilename(maybe.imageFilename!);
+    validateDesignImageFilename(maybe.imageFilename!);
   }
 
   if (hasBase64 && maybe.imageBase64!.trim().length === 0) {
@@ -81,21 +67,6 @@ function validateBody(input: unknown): DesignAgentRequestBody {
     imageBase64: maybe.imageBase64?.trim(),
     mimeType: maybe.mimeType?.trim(),
     filename: maybe.filename?.trim(),
-  };
-}
-
-export async function loadDesignImageByFilename(filename: string): Promise<ImageRef> {
-  const safeName = assertValidFilename(filename);
-  let buffer: Buffer;
-  try {
-    buffer = await readFile(join(DESIGN_IMAGE_DIR, safeName));
-  } catch {
-    throw new Error(`Unknown design image: ${safeName}`);
-  }
-  return {
-    mimeType: "image/png",
-    filename: safeName,
-    base64: buffer.toString("base64"),
   };
 }
 

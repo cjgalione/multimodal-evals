@@ -2,7 +2,6 @@ import { DesignRubricScore, DesignStepKey, ImageRef } from "@/lib/types";
 
 export interface DesignEvalInput {
   imageFilename: string;
-  imageRef: ImageRef;
   stepName: DesignStepKey;
 }
 

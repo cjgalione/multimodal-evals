@@ -61,7 +61,7 @@ export interface MultimodalAnswerOutput {
 export type DesignModel =
   | "gpt-4o"
   | "gpt-4o-mini"
-  | "claude-sonnet-4-5-20251022";
+  | "claude-sonnet-4-5";
 
 export type DesignStepKey = "analysis" | "altText" | "copy";
 

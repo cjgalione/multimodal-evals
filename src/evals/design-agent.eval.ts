@@ -3,6 +3,7 @@ import { DESIGN_EVAL_PROJECT, DESIGN_MODELS } from "@/lib/config";
 import { createDesignRubricScorer } from "@/lib/evals/design-scorers";
 import { DesignEvalInput } from "@/lib/evals/design-types";
 import { runDesignAgentPipeline } from "@/lib/server/design-agent";
+import { loadDesignImageByFilename } from "@/lib/server/design-image-loader";
 import { createDesignEvalDataset } from "@/evals/design-dataset";
 
 const dataset = createDesignEvalDataset();
@@ -13,8 +14,10 @@ for (const model of DESIGN_MODELS) {
   await Eval(DESIGN_EVAL_PROJECT, {
     experimentName: `design-agent-${model}-${runStamp}`,
     data: dataset,
-    task: async (input: DesignEvalInput) =>
-      runDesignAgentPipeline(input.imageRef, model),
+    task: async (input: DesignEvalInput) => {
+      const imageRef = await loadDesignImageByFilename(input.imageFilename);
+      return runDesignAgentPipeline(imageRef, model);
+    },
     scores: [score],
     metadata: {
       model,
