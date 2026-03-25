@@ -1,4 +1,5 @@
 import { DESIGN_MODELS } from "@/lib/config";
+import { flush } from "braintrust";
 import { scoreDesignStepWithJudge } from "@/lib/evals/design-scorers";
 import { runDesignAgentPipeline } from "@/lib/server/design-agent";
 import {
@@ -16,6 +17,7 @@ interface DesignAgentHandlerDeps {
   runPipelineFn?: typeof runDesignAgentPipeline;
   scoreStepFn?: typeof scoreDesignStepWithJudge;
   loadImageByFilenameFn?: (filename: string) => Promise<ImageRef>;
+  flushFn?: typeof flush;
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -78,6 +80,7 @@ export async function handleDesignAgentRequest(
   const runPipeline = deps.runPipelineFn ?? runDesignAgentPipeline;
   const scoreStep = deps.scoreStepFn ?? scoreDesignStepWithJudge;
   const loadImage = deps.loadImageByFilenameFn ?? loadDesignImageByFilename;
+  const flushEvents = deps.flushFn ?? flush;
 
   const imageRef = request.imageFilename
     ? await loadImage(request.imageFilename)
@@ -106,7 +109,7 @@ export async function handleDesignAgentRequest(
     }),
   ]);
 
-  return {
+  const response = {
     model: output.model,
     imageFilename: output.imageFilename,
     outputs: {
@@ -121,4 +124,8 @@ export async function handleDesignAgentRequest(
     },
     traces: output.traces,
   };
+
+  // Force a flush so local dev requests show up in Braintrust immediately.
+  await flushEvents();
+  return response;
 }

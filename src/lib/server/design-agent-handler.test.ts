@@ -39,6 +39,7 @@ describe("handleDesignAgentRequest", () => {
             no_hallucination: 1,
           };
         },
+        flushFn: async () => undefined,
       },
     );
 
@@ -69,6 +70,7 @@ describe("handleDesignAgentRequest", () => {
           accessibility_value: 0.5,
           no_hallucination: 0.5,
         }),
+        flushFn: async () => undefined,
       },
     );
 
