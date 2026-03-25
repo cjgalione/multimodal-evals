@@ -14,7 +14,8 @@ Create `.env.local`:
 OPENAI_API_KEY=...
 BRAINTRUST_API_KEY=...
 BRAINTRUST_PROJECT_NAME=Multimodal Image QA Demo
-BRAINTRUST_DESIGN_PROJECT=Design Agent - Visual Content Eval
+# Optional: override design eval project (defaults to BRAINTRUST_PROJECT_NAME)
+# BRAINTRUST_DESIGN_PROJECT=Design Agent - Visual Content Eval
 # Optional
 # OPENAI_MODEL=gpt-4o-mini
 ```
