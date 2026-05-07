@@ -14,9 +14,13 @@ Create `.env.local`:
 OPENAI_API_KEY=...
 BRAINTRUST_API_KEY=...
 BRAINTRUST_PROJECT_NAME=Multimodal Image QA Demo
+# Optional: override design eval project (defaults to BRAINTRUST_PROJECT_NAME)
+# BRAINTRUST_DESIGN_PROJECT=Design Agent - Visual Content Eval
 # Optional
 # OPENAI_MODEL=gpt-4o-mini
 ```
+
+For Claude routing through Braintrust gateway, configure an Anthropic provider key in your Braintrust org settings.
 
 ## Install and run
 
@@ -28,6 +32,17 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Design Taste Demo
+
+Generate the design-style eval images (requires Python and Pillow):
+
+```bash
+python3 -m pip install pillow
+npm run images:generate:design
+```
+
+Then open the `Design Taste Eval` tab in the app.
+
 ## Run tests
 
 ```bash
@@ -38,12 +53,14 @@ npm test
 
 ```bash
 npm run eval
+npm run eval:design
 ```
 
 Machine-readable summaries:
 
 ```bash
 npm run eval:jsonl
+npm run eval:design:jsonl
 ```
 
 ## Inspect traces

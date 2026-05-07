@@ -1,6 +1,5 @@
-import { ChatDemo } from "@/components/chat-demo";
+import { DemoHome } from "@/components/demo-home";
 
 export default function HomePage() {
-  return <ChatDemo />;
+  return <DemoHome />;
 }
-

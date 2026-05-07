@@ -57,3 +57,57 @@ export interface MultimodalAnswerOutput {
     imageBytes?: number;
   };
 }
+
+export type DesignModel =
+  | "gpt-4o"
+  | "gpt-4o-mini"
+  | "claude-sonnet-4-5";
+
+export type DesignStepKey = "analysis" | "altText" | "copy";
+
+export interface DesignRubricScore {
+  visual_specificity: number;
+  design_sensibility: number;
+  accessibility_value: number;
+  no_hallucination: number;
+}
+
+export interface DesignAgentTraces {
+  root: TraceInfo;
+  analysis: TraceInfo;
+  altText: TraceInfo;
+  copy: TraceInfo;
+}
+
+export interface DesignAgentOutput {
+  analysis: string;
+  altText: string;
+  copySuggestions: string;
+  traces: DesignAgentTraces;
+  model: DesignModel;
+  imageFilename: string;
+}
+
+export interface DesignAgentRequestBody {
+  model: DesignModel;
+  imageFilename?: string;
+  imageBase64?: string;
+  mimeType?: string;
+  filename?: string;
+}
+
+export interface DesignAgentResponseBody {
+  model: DesignModel;
+  imageFilename: string;
+  outputs: {
+    analysis: string;
+    altText: string;
+    copySuggestions: string;
+  };
+  scores: {
+    analysis: DesignRubricScore;
+    altText: DesignRubricScore;
+    copy: DesignRubricScore;
+  };
+  traces: DesignAgentTraces;
+}
